@@ -2,10 +2,7 @@ package systems
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/component"
-	"GraphicsStuff/engine/data"
-	"GraphicsStuff/engine/ecsmanager"
-	"GraphicsStuff/engine/events"
+	"GraphicsStuff/engine/ecs"
 	"GraphicsStuff/primitives"
 	"fmt"
 	"io/ioutil"
@@ -21,11 +18,11 @@ import (
 )
 
 type RendererSystem struct {
-	*ecsmanager.SystemEntityCollection
+	*ecs.SystemEntityCollection
 	vao     uint32
 	vbo     uint32
 	program uint32
-	cube    []data.Vertex
+	cube    []engine.Vertex
 }
 
 func (r *RendererSystem) Init() {
@@ -46,9 +43,9 @@ func (r *RendererSystem) Init() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
 
 	r.cube = primitives.CubeVertex()
-	gl.BufferData(gl.ARRAY_BUFFER, int(unsafe.Sizeof(data.Vertex{}))*len(r.cube), gl.Ptr(r.cube), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, int(unsafe.Sizeof(engine.Vertex{}))*len(r.cube), gl.Ptr(r.cube), gl.STATIC_DRAW)
 	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, int32(unsafe.Sizeof(data.Vertex{})), gl.PtrOffset(0))
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, int32(unsafe.Sizeof(engine.Vertex{})), gl.PtrOffset(0))
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
@@ -66,12 +63,12 @@ func (r *RendererSystem) Init() {
 	modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
 	gl.UniformMatrix4fv(modelUniform, 1, false, &model[0])
 
-	engine.EventDispatcher.Subscribe(events.TestEvent, func(eventType events.EventType, i interface{}) {
+	engine.EventDispatcher.Subscribe(engine.TestEvent, func(eventType engine.EventType, i interface{}) {
 		log.Println(i)
 	})
 
 	time.AfterFunc(5*time.Second, func() {
-		engine.EventDispatcher.Trigger(events.TestEvent, "This works!")
+		engine.EventDispatcher.Trigger(engine.TestEvent, "This works!")
 	})
 }
 
@@ -79,11 +76,18 @@ func (r *RendererSystem) Update(delta float32) {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	for _, entity := range r.Entities() {
-		transform := entity.Transform()
-		modelUniform := gl.GetUniformLocation(r.program, gl.Str("model\x00"))
-		gl.UniformMatrix4fv(modelUniform, 1, false, &transform.LocalToWorld[0])
-		gl.BindVertexArray(r.vao)
-		gl.DrawArrays(gl.TRIANGLES, 0, 36)
+		camera, err := entity.GetCameraComponent()
+		if err != nil {
+			continue
+		}
+
+		for _, renderable := range camera.Renderables {
+			transform := renderable.Transform()
+			modelUniform := gl.GetUniformLocation(r.program, gl.Str("model\x00"))
+			gl.UniformMatrix4fv(modelUniform, 1, false, &transform.LocalToWorld[0])
+			gl.BindVertexArray(r.vao)
+			gl.DrawArrays(gl.TRIANGLES, 0, 36)
+		}
 	}
 }
 
@@ -95,8 +99,8 @@ func (r *RendererSystem) Shutdown() {
 }
 
 func NewRendererSystem() *RendererSystem {
-	system := &RendererSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
-	system.SetRequirements(component.MeshRendererComponentTag)
+	system := &RendererSystem{SystemEntityCollection: ecs.NewSystemEntityCollection()}
+	system.SetRequirements(ecs.CameraComponentTag)
 	return system
 }
 

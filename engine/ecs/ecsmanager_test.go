@@ -1,26 +1,25 @@
-package ecsmanager_test
+package ecs_test
 
 import (
-	"GraphicsStuff/engine/component"
-	"GraphicsStuff/engine/ecsmanager"
+	"GraphicsStuff/engine/ecs"
 	"GraphicsStuff/playersystems"
 	"testing"
 )
 
 func BenchmarkECSManager_AddComponent(b *testing.B) {
-	em := ecsmanager.NewECSManager()
+	em := ecs.NewECSManager()
 	entity := em.NewEntity()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		entity.AddCameraComponent(&component.Camera{})
+		entity.AddCameraComponent(&ecs.Camera{})
 	}
 }
 
 func BenchmarkECSManager_GetComponent(b *testing.B) {
-	em := ecsmanager.NewECSManager()
+	em := ecs.NewECSManager()
 	entity := em.NewEntity()
-	entity.AddCameraComponent(&component.Camera{FOV: 95.0})
+	entity.AddCameraComponent(&ecs.Camera{FOV: 95.0})
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -32,33 +31,33 @@ func BenchmarkECSManager_GetComponent(b *testing.B) {
 }
 
 func BenchmarkSystemEntityCollection_AddEntity(b *testing.B) {
-	em := ecsmanager.NewECSManager()
+	em := ecs.NewECSManager()
 	system := playersystems.NewTestPlayerSystem()
-	system.SetRequirements(component.CameraComponentTag)
-	em.AddSystem(ecsmanager.PlayerSystemGroup, system)
+	system.SetRequirements(ecs.CameraComponentTag)
+	em.AddSystem(ecs.PlayerSystemGroup, system)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		entity := em.NewEntity()
-		em.AddComponent(entity, component.CameraComponentTag, &component.Camera{})
+		em.AddComponent(entity, ecs.CameraComponentTag, &ecs.Camera{})
 	}
 }
 
 func BenchmarkECSManager_GetEntitiesWithComponents(b *testing.B) {
-	em := ecsmanager.NewECSManager()
+	em := ecs.NewECSManager()
 	for i := 0; i < 1000; i++ {
 		e := em.NewEntity()
 		if i%2 == 0 {
-			e.AddMeshRendererComponent(&component.MeshRenderer{})
-			e.AddMaterialComponent(&component.Material{})
+			e.AddMeshRendererComponent(&ecs.MeshRenderer{})
+			e.AddMaterialComponent(&ecs.Material{})
 		}
-		e.AddCameraComponent(&component.Camera{})
+		e.AddCameraComponent(&ecs.Camera{})
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cameraentities := em.GetEntitiesWithComponents(component.CameraComponentTag)
-		meshentities := em.GetEntitiesWithComponents(component.MeshRendererComponentTag, component.MaterialComponentTag)
+		cameraentities := em.GetEntitiesWithComponents(ecs.CameraComponentTag)
+		meshentities := em.GetEntitiesWithComponents(ecs.MeshRendererComponentTag, ecs.MaterialComponentTag)
 		if len(cameraentities) < 1000 {
 			b.FailNow()
 		}

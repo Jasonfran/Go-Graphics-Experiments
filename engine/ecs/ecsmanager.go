@@ -1,8 +1,6 @@
-package ecsmanager
+package ecs
 
 import (
-	"GraphicsStuff/engine/cache"
-	"GraphicsStuff/engine/component"
 	"errors"
 
 	"github.com/willf/bitset"
@@ -11,9 +9,9 @@ import (
 type ECSManager struct {
 	idCounter        EntityId
 	entities         map[EntityId]*Entity
-	entityComponents map[EntityId]map[component.ComponentTag]component.Component
+	entityComponents map[EntityId]map[ComponentTag]Component
 	entityBitsets    map[EntityId]*bitset.BitSet
-	bitsetCache      *cache.BitsetCache
+	bitsetCache      *BitsetCache
 	bitsetEntities   *BitsetEntityCollection
 	systems          map[SystemGroupType]*SystemGroup
 }
@@ -21,9 +19,9 @@ type ECSManager struct {
 func NewECSManager() *ECSManager {
 	return &ECSManager{
 		entities:         map[EntityId]*Entity{},
-		entityComponents: map[EntityId]map[component.ComponentTag]component.Component{},
+		entityComponents: map[EntityId]map[ComponentTag]Component{},
 		entityBitsets:    map[EntityId]*bitset.BitSet{},
-		bitsetCache:      cache.Instance,
+		bitsetCache:      BitsetCacheInstance,
 		bitsetEntities:   NewBitsetEntityCollection(),
 		systems: map[SystemGroupType]*SystemGroup{
 			PlayerSystemGroup: NewSystemGroup(PlayerSystemGroup),
@@ -34,34 +32,34 @@ func NewECSManager() *ECSManager {
 
 func (e *ECSManager) NewEntity() *Entity {
 	entity := &Entity{
-		Id:         e.idCounter,
+		id:         e.idCounter,
 		ecsManager: e,
 	}
 
 	e.idCounter++
-	e.entities[entity.Id] = entity
-	e.entityBitsets[entity.Id] = e.bitsetCache.New()
-	e.entityComponents[entity.Id] = map[component.ComponentTag]component.Component{}
+	e.entities[entity.Id()] = entity
+	e.entityBitsets[entity.Id()] = e.bitsetCache.New()
+	e.entityComponents[entity.Id()] = map[ComponentTag]Component{}
 
 	// All entities should have a transform component
-	entity.transform = &component.Transform{}
+	entity.transform = &Transform{}
 	return entity
 }
 
-func (e *ECSManager) AddComponent(entity *Entity, tag component.ComponentTag, c component.Component) {
-	e.entityComponents[entity.Id][tag] = c
-	b := e.entityBitsets[entity.Id]
+func (e *ECSManager) AddComponent(entity *Entity, tag ComponentTag, c Component) {
+	e.entityComponents[entity.Id()][tag] = c
+	b := e.entityBitsets[entity.Id()]
 	e.bitsetEntities.Add(entity, e.bitsetCache.New(tag))
 	newSet := e.bitsetCache.Append(b, tag)
 	e.bitsetEntities.Add(entity, newSet)
-	e.entityBitsets[entity.Id] = newSet
+	e.entityBitsets[entity.Id()] = newSet
 
 	e.GetSystemGroup(PlayerSystemGroup).AddEntity(entity)
 	e.GetSystemGroup(EngineSystemGroup).AddEntity(entity)
 }
 
-func (e *ECSManager) GetComponent(entity *Entity, tag component.ComponentTag) (component.Component, error) {
-	c, ok := e.entityComponents[entity.Id][tag]
+func (e *ECSManager) GetComponent(entity *Entity, tag ComponentTag) (Component, error) {
+	c, ok := e.entityComponents[entity.Id()][tag]
 	if !ok {
 		return nil, errors.New("entity or component not found")
 	}
@@ -80,33 +78,14 @@ func (e *ECSManager) AddSystem(group SystemGroupType, s System) {
 }
 
 func (e *ECSManager) GetEntityBitset(entity *Entity) *bitset.BitSet {
-	return e.entityBitsets[entity.Id]
+	return e.entityBitsets[entity.Id()]
 }
 
 func (e *ECSManager) GetSystemGroup(group SystemGroupType) *SystemGroup {
 	return e.systems[group]
 }
 
-func (e *ECSManager) GetEntitiesWithComponents(tags ...component.ComponentTag) []*Entity {
+func (e *ECSManager) GetEntitiesWithComponents(tags ...ComponentTag) []*Entity {
 	b := e.bitsetCache.New(tags...)
 	return e.bitsetEntities.Get(b)
 }
-
-//func (e *ECSManager) removeFromBitsetEntities(entity *Entity, b *bitset.BitSet) {
-//	entities, ok := e.bitsetEntities[b]
-//	if !ok {
-//		return
-//	}
-//	delete(entities, entity.Id)
-//}
-//
-//func (e *ECSManager) addToBitsetEntities(entity *Entity, b *bitset.BitSet) {
-//	entities, ok := e.bitsetEntities[b]
-//	if !ok {
-//		entities = map[EntityId]*Entity{entity.Id: entity}
-//		e.bitsetEntities[b] = entities
-//		return
-//	}
-//
-//	entities[entity.Id] = entity
-//}

@@ -2,8 +2,7 @@ package playersystems
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/component"
-	"GraphicsStuff/engine/ecsmanager"
+	"GraphicsStuff/engine/ecs"
 	"log"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -12,14 +11,14 @@ import (
 )
 
 type TestPlayerSystem struct {
-	*ecsmanager.SystemEntityCollection
+	*ecs.SystemEntityCollection
 }
 
 func (t *TestPlayerSystem) Init() {
 	log.Println("TestPlayerSystem Init")
 	e := engine.ECSManager.NewEntity()
-	e.AddMeshRendererComponent(&component.MeshRenderer{Mesh: "Cube"})
-	e.AddMaterialComponent(&component.Material{Colour: mgl32.Vec3{1, 1, 0}})
+	e.AddMeshRendererComponent(&ecs.MeshRenderer{Mesh: "Cube"})
+	e.AddMaterialComponent(&ecs.Material{Colour: mgl32.Vec3{1, 1, 0}})
 
 	//for i := 0; i < 100; i++ {
 	//	entity := engine.ECSManager.NewEntity()
@@ -57,5 +56,5 @@ func (t *TestPlayerSystem) Shutdown() {
 }
 
 func NewTestPlayerSystem() *TestPlayerSystem {
-	return &TestPlayerSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
+	return &TestPlayerSystem{SystemEntityCollection: ecs.NewSystemEntityCollection()}
 }

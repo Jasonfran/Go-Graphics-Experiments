@@ -1,7 +1,7 @@
 package primitives
 
 import (
-	"GraphicsStuff/engine/data"
+	"GraphicsStuff/engine"
 
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -67,8 +67,8 @@ func Triangle() []float32 {
 	}
 }
 
-func CubeVertex() []data.Vertex {
-	return []data.Vertex{
+func CubeVertex() []engine.Vertex {
+	return []engine.Vertex{
 		//  X, Y, Z, U, V
 		// Bottom
 		{Pos: mgl32.Vec3{-1.0, -1.0, -1.0}},

@@ -2,8 +2,7 @@ package main
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/component"
-	"GraphicsStuff/engine/ecsmanager"
+	"GraphicsStuff/engine/ecs"
 	"GraphicsStuff/engine/systems"
 	"GraphicsStuff/playersystems"
 	"fmt"
@@ -66,20 +65,15 @@ func (g *Game) framebufferSizeCallback(w *glfw.Window, width int, height int) {
 
 func (g *Game) Run() {
 	testplayersystem := playersystems.NewTestPlayerSystem()
-	testplayersystem.SetRequirements()
-	engine.ECSManager.AddSystem(ecsmanager.PlayerSystemGroup, testplayersystem)
-
-	renderer := systems.NewRendererSystem()
-	renderer.SetRequirements(component.MeshRendererComponentTag)
-
 	cameraSystem := systems.NewCameraSystem()
-	cameraSystem.SetRequirements(component.CameraComponentTag)
+	renderer := systems.NewRendererSystem()
 
-	engine.ECSManager.AddSystem(ecsmanager.EngineSystemGroup, cameraSystem)
-	engine.ECSManager.AddSystem(ecsmanager.EngineSystemGroup, renderer)
+	engine.ECSManager.AddSystem(ecs.PlayerSystemGroup, testplayersystem)
+	engine.ECSManager.AddSystem(ecs.EngineSystemGroup, cameraSystem)
+	engine.ECSManager.AddSystem(ecs.EngineSystemGroup, renderer)
 
-	psystems := engine.ECSManager.GetSystemGroup(ecsmanager.PlayerSystemGroup)
-	esystems := engine.ECSManager.GetSystemGroup(ecsmanager.EngineSystemGroup)
+	psystems := engine.ECSManager.GetSystemGroup(ecs.PlayerSystemGroup)
+	esystems := engine.ECSManager.GetSystemGroup(ecs.EngineSystemGroup)
 
 	psystems.Init()
 	esystems.Init()

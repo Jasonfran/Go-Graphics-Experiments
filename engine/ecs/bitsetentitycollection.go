@@ -1,6 +1,8 @@
-package ecsmanager
+package ecs
 
-import "github.com/willf/bitset"
+import (
+	"github.com/willf/bitset"
+)
 
 type BitsetEntityCollection struct {
 	bitsetEntities      map[*bitset.BitSet][]*Entity
@@ -26,12 +28,12 @@ func (c *BitsetEntityCollection) Add(entity *Entity, b *bitset.BitSet) {
 
 	indexes, ok := c.bitsetEntityIndexes[b]
 	if !ok {
-		indexes = map[EntityId]int{entity.Id: len(entities) - 1}
+		indexes = map[EntityId]int{entity.Id(): len(entities) - 1}
 		c.bitsetEntityIndexes[b] = indexes
 		return
 	}
 
-	indexes[entity.Id] = len(entities) - 1
+	indexes[entity.Id()] = len(entities) - 1
 }
 
 func (c *BitsetEntityCollection) Remove(entity *Entity, b *bitset.BitSet) {
@@ -45,14 +47,14 @@ func (c *BitsetEntityCollection) Remove(entity *Entity, b *bitset.BitSet) {
 		return
 	}
 
-	index, ok := indexes[entity.Id]
+	index, ok := indexes[entity.Id()]
 	if !ok {
 		return
 	}
 
 	lastEntity := entities[len(entities)-1]
 	entities[index] = lastEntity
-	indexes[lastEntity.Id] = index
+	indexes[lastEntity.Id()] = index
 	c.bitsetEntities[b] = entities[:len(entities)-1]
 }
 

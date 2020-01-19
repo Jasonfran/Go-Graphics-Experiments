@@ -1,18 +1,17 @@
-package cache
+package ecs
 
 import (
-	"GraphicsStuff/engine/component"
 	"log"
 	"sort"
 
 	"github.com/willf/bitset"
 )
 
-var Instance = NewBitsetCache()
+var BitsetCacheInstance = NewBitsetCache()
 
 type TagsHash uint64
 
-func HashTags(tags ...component.ComponentTag) TagsHash {
+func HashTags(tags ...ComponentTag) TagsHash {
 	hash := uint64(0)
 	for _, tag := range tags {
 		hash += uint64(tag)
@@ -29,18 +28,18 @@ func HashTags(tags ...component.ComponentTag) TagsHash {
 type BitsetCache struct {
 	empty *bitset.BitSet
 	cache map[TagsHash]*bitset.BitSet
-	tags  map[*bitset.BitSet][]component.ComponentTag
+	tags  map[*bitset.BitSet][]ComponentTag
 }
 
 func NewBitsetCache() *BitsetCache {
 	return &BitsetCache{
 		empty: bitset.New(8),
 		cache: map[TagsHash]*bitset.BitSet{},
-		tags:  map[*bitset.BitSet][]component.ComponentTag{},
+		tags:  map[*bitset.BitSet][]ComponentTag{},
 	}
 }
 
-func (c *BitsetCache) New(tags ...component.ComponentTag) *bitset.BitSet {
+func (c *BitsetCache) New(tags ...ComponentTag) *bitset.BitSet {
 	if len(tags) <= 0 {
 		return c.empty
 	}
@@ -58,7 +57,7 @@ func (c *BitsetCache) New(tags ...component.ComponentTag) *bitset.BitSet {
 		}
 
 		c.cache[hashKey] = cached
-		copyTags := make([]component.ComponentTag, len(tags))
+		copyTags := make([]ComponentTag, len(tags))
 		copy(copyTags, tags)
 		c.tags[cached] = copyTags
 		log.Printf("Created new bitset for %v", tags)
@@ -67,12 +66,12 @@ func (c *BitsetCache) New(tags ...component.ComponentTag) *bitset.BitSet {
 	return cached
 }
 
-func (c *BitsetCache) Append(b *bitset.BitSet, tag component.ComponentTag) *bitset.BitSet {
+func (c *BitsetCache) Append(b *bitset.BitSet, tag ComponentTag) *bitset.BitSet {
 	tags := c.GetTags(b)
 	tags = append(tags, tag)
 	return c.New(tags...)
 }
 
-func (c *BitsetCache) GetTags(b *bitset.BitSet) []component.ComponentTag {
+func (c *BitsetCache) GetTags(b *bitset.BitSet) []ComponentTag {
 	return c.tags[b]
 }

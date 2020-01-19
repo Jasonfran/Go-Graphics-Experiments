@@ -1,4 +1,4 @@
-package component
+package ecs
 
 type ComponentTag uint64
 

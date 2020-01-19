@@ -1,9 +1,6 @@
-package ecsmanager
+package ecs
 
 import (
-	"GraphicsStuff/engine/cache"
-	"GraphicsStuff/engine/component"
-
 	"github.com/willf/bitset"
 )
 
@@ -22,25 +19,25 @@ type System interface {
 	AddEntity(e *Entity)
 	RemoveEntity(id EntityId)
 	GetRequirements() *bitset.BitSet
-	SetRequirements(tags ...component.ComponentTag)
+	SetRequirements(tags ...ComponentTag)
 }
 
 type SystemEntityCollection struct {
-	bitsetCache  *cache.BitsetCache
+	bitsetCache  *BitsetCache
 	entities     map[EntityId]*Entity
 	requirements *bitset.BitSet
 }
 
 func NewSystemEntityCollection() *SystemEntityCollection {
 	return &SystemEntityCollection{
-		bitsetCache:  cache.Instance,
+		bitsetCache:  BitsetCacheInstance,
 		entities:     map[EntityId]*Entity{},
-		requirements: cache.Instance.New(),
+		requirements: BitsetCacheInstance.New(),
 	}
 }
 
 func (c *SystemEntityCollection) AddEntity(e *Entity) {
-	c.entities[e.Id] = e
+	c.entities[e.Id()] = e
 }
 
 func (c *SystemEntityCollection) RemoveEntity(id EntityId) {
@@ -51,7 +48,7 @@ func (c *SystemEntityCollection) GetRequirements() *bitset.BitSet {
 	return c.requirements
 }
 
-func (c *SystemEntityCollection) SetRequirements(tags ...component.ComponentTag) {
+func (c *SystemEntityCollection) SetRequirements(tags ...ComponentTag) {
 	c.requirements = c.bitsetCache.New(tags...)
 }
 
@@ -121,6 +118,6 @@ func (g *SystemGroup) GetRequirements() *bitset.BitSet {
 	panic("implement me")
 }
 
-func (g *SystemGroup) SetRequirements(tags ...component.ComponentTag) {
+func (g *SystemGroup) SetRequirements(tags ...ComponentTag) {
 	panic("implement me")
 }
