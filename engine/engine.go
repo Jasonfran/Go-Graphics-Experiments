@@ -1,9 +1,11 @@
 package engine
 
-import "GraphicsStuff/engine/ecs"
+import (
+	"GraphicsStuff/engine/ecs/ecsmanager"
+)
 
 var (
-	ECSManager      = ecs.NewECSManager()
+	ECSManager      = ecsmanager.NewECSManager()
 	EventDispatcher = NewDispatcher()
 	InputManager    = NewManager()
 )

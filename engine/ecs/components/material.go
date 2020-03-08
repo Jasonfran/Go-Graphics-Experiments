@@ -1,4 +1,4 @@
-package ecs
+package components
 
 import "github.com/go-gl/mathgl/mgl32"
 

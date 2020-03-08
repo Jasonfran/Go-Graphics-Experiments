@@ -2,12 +2,13 @@ package main
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/ecs"
+	"GraphicsStuff/engine/ecs/ecsmanager"
 	"GraphicsStuff/engine/systems"
 	"GraphicsStuff/playersystems"
 	"fmt"
 	"log"
 	"runtime"
+	"time"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -65,15 +66,18 @@ func (g *Game) framebufferSizeCallback(w *glfw.Window, width int, height int) {
 
 func (g *Game) Run() {
 	testplayersystem := playersystems.NewTestPlayerSystem()
+	physicssystem := playersystems.NewPhysicsSystem()
 	cameraSystem := systems.NewCameraSystem()
 	renderer := systems.NewRendererSystem()
 
-	engine.ECSManager.AddSystem(ecs.PlayerSystemGroup, testplayersystem)
-	engine.ECSManager.AddSystem(ecs.EngineSystemGroup, cameraSystem)
-	engine.ECSManager.AddSystem(ecs.EngineSystemGroup, renderer)
+	engine.ECSManager.AddSystem(ecsmanager.PlayerSystemGroup, testplayersystem)
+	engine.ECSManager.AddSystem(ecsmanager.PlayerSystemGroup, physicssystem)
 
-	psystems := engine.ECSManager.GetSystemGroup(ecs.PlayerSystemGroup)
-	esystems := engine.ECSManager.GetSystemGroup(ecs.EngineSystemGroup)
+	engine.ECSManager.AddSystem(ecsmanager.EngineSystemGroup, cameraSystem)
+	engine.ECSManager.AddSystem(ecsmanager.EngineSystemGroup, renderer)
+
+	psystems := engine.ECSManager.GetSystemGroup(ecsmanager.PlayerSystemGroup)
+	esystems := engine.ECSManager.GetSystemGroup(ecsmanager.EngineSystemGroup)
 
 	psystems.Init()
 	esystems.Init()
@@ -84,6 +88,7 @@ func (g *Game) Run() {
 		delta := float32(now - previousFrameTime)
 		previousFrameTime = now
 
+		loopStart := time.Now()
 		engine.InputManager.Update()
 		glfw.PollEvents()
 		psystems.Update(delta)
@@ -92,10 +97,11 @@ func (g *Game) Run() {
 		psystems.LateUpdate(delta)
 		esystems.LateUpdate(delta)
 
+		mainLoopTime := time.Since(loopStart)
 		// Do OpenGL stuff.
 		g.Window.SwapBuffers()
 
-		g.Window.SetTitle(fmt.Sprintf("Render: %.2f", delta*1000))
+		g.Window.SetTitle(fmt.Sprintf("Render: %.2f - Main loop: %v", delta*1000, mainLoopTime))
 	}
 
 	psystems.Shutdown()

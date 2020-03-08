@@ -18,5 +18,6 @@ func (t *Transform) Translate(x, y, z float32) {
 
 func (t *Transform) calculateMatrix() {
 	translate := mgl32.Translate3D(t.Pos.X(), t.Pos.Y(), t.Pos.Z())
-	t.LocalToWorld = translate
+	//scale := mgl32.Scale3D(0.05, 0.05, 0.05)
+	t.LocalToWorld = translate //.Mul4(scale)
 }

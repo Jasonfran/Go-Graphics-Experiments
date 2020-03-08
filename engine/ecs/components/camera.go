@@ -1,8 +1,10 @@
-package ecs
+package components
+
+import "GraphicsStuff/engine/ecs"
 
 type Camera struct {
 	FOV         float32
-	Renderables []*Entity
+	Renderables []ecs.Entity
 }
 
 func (c *Camera) Name() string {

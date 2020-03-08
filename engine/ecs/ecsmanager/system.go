@@ -1,6 +1,8 @@
-package ecs
+package ecsmanager
 
 import (
+	"GraphicsStuff/engine/ecs"
+
 	"github.com/willf/bitset"
 )
 
@@ -16,49 +18,52 @@ type System interface {
 	Update(delta float32)
 	LateUpdate(delta float32)
 	Shutdown()
-	AddEntity(e *Entity)
-	RemoveEntity(id EntityId)
+	AddEntity(e ecs.Entity)
+	RemoveEntity(id ecs.EntityId)
 	GetRequirements() *bitset.BitSet
-	SetRequirements(tags ...ComponentTag)
+	SetRequirements(tags ...ecs.ComponentTag)
 }
 
 type SystemEntityCollection struct {
-	bitsetCache  *BitsetCache
-	entities     map[EntityId]*Entity
-	requirements *bitset.BitSet
+	bitsetCache   *BitsetCache
+	entitiesList  []ecs.Entity
+	entitiesIndex map[ecs.EntityId]int
+	requirements  *bitset.BitSet
 }
 
 func NewSystemEntityCollection() *SystemEntityCollection {
 	return &SystemEntityCollection{
-		bitsetCache:  BitsetCacheInstance,
-		entities:     map[EntityId]*Entity{},
-		requirements: BitsetCacheInstance.New(),
+		bitsetCache:   BitsetCacheInstance,
+		entitiesList:  []ecs.Entity{},
+		entitiesIndex: map[ecs.EntityId]int{},
+		requirements:  BitsetCacheInstance.New(),
 	}
 }
 
-func (c *SystemEntityCollection) AddEntity(e *Entity) {
-	c.entities[e.Id()] = e
+func (c *SystemEntityCollection) AddEntity(e ecs.Entity) {
+	c.entitiesList = append(c.entitiesList, e)
+	c.entitiesIndex[e.Id()] = len(c.entitiesList) - 1
 }
 
-func (c *SystemEntityCollection) RemoveEntity(id EntityId) {
-	delete(c.entities, id)
+func (c *SystemEntityCollection) RemoveEntity(id ecs.EntityId) {
+	index := c.entitiesIndex[id]
+	lastEntity := c.entitiesList[len(c.entitiesList)-1]
+	c.entitiesList[index] = lastEntity
+	c.entitiesIndex[lastEntity.Id()] = index
+	c.entitiesList = c.entitiesList[:len(c.entitiesList)-1]
+	delete(c.entitiesIndex, id)
 }
 
 func (c *SystemEntityCollection) GetRequirements() *bitset.BitSet {
 	return c.requirements
 }
 
-func (c *SystemEntityCollection) SetRequirements(tags ...ComponentTag) {
+func (c *SystemEntityCollection) SetRequirements(tags ...ecs.ComponentTag) {
 	c.requirements = c.bitsetCache.New(tags...)
 }
 
-func (c *SystemEntityCollection) Entities() []*Entity {
-	entities := make([]*Entity, 0, len(c.entities))
-	for _, entity := range c.entities {
-		entities = append(entities, entity)
-	}
-
-	return entities
+func (c *SystemEntityCollection) Entities() []ecs.Entity {
+	return c.entitiesList
 }
 
 type SystemGroup struct {
@@ -101,7 +106,7 @@ func (g *SystemGroup) Shutdown() {
 	}
 }
 
-func (g *SystemGroup) AddEntity(e *Entity) {
+func (g *SystemGroup) AddEntity(e ecs.Entity) {
 	for _, system := range g.systems {
 		req := system.GetRequirements()
 		if e.ComponentBitset().IsSuperSet(req) {
@@ -110,7 +115,7 @@ func (g *SystemGroup) AddEntity(e *Entity) {
 	}
 }
 
-func (g *SystemGroup) RemoveEntity(id EntityId) {
+func (g *SystemGroup) RemoveEntity(id ecs.EntityId) {
 	panic("implement me")
 }
 
@@ -118,6 +123,6 @@ func (g *SystemGroup) GetRequirements() *bitset.BitSet {
 	panic("implement me")
 }
 
-func (g *SystemGroup) SetRequirements(tags ...ComponentTag) {
+func (g *SystemGroup) SetRequirements(tags ...ecs.ComponentTag) {
 	panic("implement me")
 }

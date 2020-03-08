@@ -1,25 +1,27 @@
-package ecs
+package ecsmanager
 
 import (
+	"GraphicsStuff/engine/ecs"
+
 	"github.com/willf/bitset"
 )
 
 type BitsetEntityCollection struct {
-	bitsetEntities      map[*bitset.BitSet][]*Entity
-	bitsetEntityIndexes map[*bitset.BitSet]map[EntityId]int
+	bitsetEntities      map[*bitset.BitSet][]ecs.Entity
+	bitsetEntityIndexes map[*bitset.BitSet]map[ecs.EntityId]int
 }
 
 func NewBitsetEntityCollection() *BitsetEntityCollection {
 	return &BitsetEntityCollection{
-		bitsetEntities:      map[*bitset.BitSet][]*Entity{},
-		bitsetEntityIndexes: map[*bitset.BitSet]map[EntityId]int{},
+		bitsetEntities:      map[*bitset.BitSet][]ecs.Entity{},
+		bitsetEntityIndexes: map[*bitset.BitSet]map[ecs.EntityId]int{},
 	}
 }
 
-func (c *BitsetEntityCollection) Add(entity *Entity, b *bitset.BitSet) {
+func (c *BitsetEntityCollection) Add(entity ecs.Entity, b *bitset.BitSet) {
 	entities, ok := c.bitsetEntities[b]
 	if !ok {
-		entities = make([]*Entity, 0, 20)
+		entities = make([]ecs.Entity, 0, 20)
 		c.bitsetEntities[b] = entities
 	}
 
@@ -28,7 +30,7 @@ func (c *BitsetEntityCollection) Add(entity *Entity, b *bitset.BitSet) {
 
 	indexes, ok := c.bitsetEntityIndexes[b]
 	if !ok {
-		indexes = map[EntityId]int{entity.Id(): len(entities) - 1}
+		indexes = map[ecs.EntityId]int{entity.Id(): len(entities) - 1}
 		c.bitsetEntityIndexes[b] = indexes
 		return
 	}
@@ -36,7 +38,7 @@ func (c *BitsetEntityCollection) Add(entity *Entity, b *bitset.BitSet) {
 	indexes[entity.Id()] = len(entities) - 1
 }
 
-func (c *BitsetEntityCollection) Remove(entity *Entity, b *bitset.BitSet) {
+func (c *BitsetEntityCollection) Remove(entity ecs.Entity, b *bitset.BitSet) {
 	entities, ok := c.bitsetEntities[b]
 	if !ok {
 		return
@@ -56,12 +58,13 @@ func (c *BitsetEntityCollection) Remove(entity *Entity, b *bitset.BitSet) {
 	entities[index] = lastEntity
 	indexes[lastEntity.Id()] = index
 	c.bitsetEntities[b] = entities[:len(entities)-1]
+	delete(c.bitsetEntityIndexes[b], entity.Id())
 }
 
-func (c *BitsetEntityCollection) Get(b *bitset.BitSet) []*Entity {
+func (c *BitsetEntityCollection) Get(b *bitset.BitSet) []ecs.Entity {
 	entities, ok := c.bitsetEntities[b]
 	if !ok {
-		return []*Entity{}
+		return []ecs.Entity{}
 	}
 	return entities
 }

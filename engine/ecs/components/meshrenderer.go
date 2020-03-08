@@ -1,4 +1,4 @@
-package ecs
+package components
 
 type MeshRenderer struct {
 	Mesh string

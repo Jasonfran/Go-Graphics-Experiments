@@ -2,7 +2,9 @@ package systems
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/ecs"
+	"GraphicsStuff/engine/ecs/components"
+	"GraphicsStuff/engine/ecs/ecsmanager"
+	"GraphicsStuff/engine/loader"
 	"GraphicsStuff/primitives"
 	"fmt"
 	"io/ioutil"
@@ -18,7 +20,7 @@ import (
 )
 
 type RendererSystem struct {
-	*ecs.SystemEntityCollection
+	*ecsmanager.SystemEntityCollection
 	vao     uint32
 	vbo     uint32
 	program uint32
@@ -51,7 +53,7 @@ func (r *RendererSystem) Init() {
 	gl.BindVertexArray(0)
 	gl.UseProgram(program)
 
-	projection := mgl32.Perspective(mgl32.DegToRad(75.0), float32(800)/600, 0.1, 10.0)
+	projection := mgl32.Perspective(mgl32.DegToRad(75.0), float32(800)/600, 0.1, 1000.0)
 	projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
 	gl.UniformMatrix4fv(projectionUniform, 1, false, &projection[0])
 
@@ -73,10 +75,14 @@ func (r *RendererSystem) Init() {
 }
 
 func (r *RendererSystem) Update(delta float32) {
+	start := time.Now()
+	defer func() {
+		log.Println("Render: ", time.Since(start))
+	}()
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	for _, entity := range r.Entities() {
-		camera, err := entity.GetCameraComponent()
+		camera, err := components.GetCameraComponent(entity)
 		if err != nil {
 			continue
 		}
@@ -85,8 +91,17 @@ func (r *RendererSystem) Update(delta float32) {
 			transform := renderable.Transform()
 			modelUniform := gl.GetUniformLocation(r.program, gl.Str("model\x00"))
 			gl.UniformMatrix4fv(modelUniform, 1, false, &transform.LocalToWorld[0])
+
+			color := mgl32.Vec3{1, 1, 1}
+			material, err := components.GetMaterialComponent(renderable)
+			if err == nil {
+				color = material.Colour
+			}
+
+			colorUniform := gl.GetUniformLocation(r.program, gl.Str("color\x00"))
+			gl.Uniform3f(colorUniform, color.X(), color.Y(), color.Z())
 			gl.BindVertexArray(r.vao)
-			gl.DrawArrays(gl.TRIANGLES, 0, 36)
+			gl.DrawArrays(gl.TRIANGLES, 0, int32(len(r.cube)))
 		}
 	}
 }
@@ -99,8 +114,8 @@ func (r *RendererSystem) Shutdown() {
 }
 
 func NewRendererSystem() *RendererSystem {
-	system := &RendererSystem{SystemEntityCollection: ecs.NewSystemEntityCollection()}
-	system.SetRequirements(ecs.CameraComponentTag)
+	system := &RendererSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
+	system.SetRequirements(components.CameraComponentTag)
 	return system
 }
 
@@ -171,4 +186,23 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 	}
 
 	return shader, nil
+}
+
+func load2b() []engine.Vertex {
+	model, err := loader.Parse("cmd/ecs/models/2b.obj")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	vertices := []engine.Vertex{}
+	for _, vert := range model.Meshes[0].Vertices {
+		vertices = append(vertices, engine.Vertex{
+			Pos:       mgl32.Vec3{vert.Pos.X, vert.Pos.Y, vert.Pos.Z},
+			Normal:    mgl32.Vec3{vert.Normal.X, vert.Normal.Y, vert.Normal.Z},
+			Color:     mgl32.Vec3{1, 0, 0},
+			TexCoords: mgl32.Vec2{vert.TexCoords.X, vert.TexCoords.Y},
+		})
+	}
+
+	return vertices
 }
