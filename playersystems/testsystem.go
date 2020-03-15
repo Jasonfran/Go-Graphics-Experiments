@@ -2,8 +2,8 @@ package playersystems
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/ecs/components"
-	"GraphicsStuff/engine/ecs/ecsmanager"
+	"GraphicsStuff/engine/components"
+	"GraphicsStuff/engine/ecs"
 	"log"
 	"time"
 
@@ -13,15 +13,14 @@ import (
 )
 
 type TestPlayerSystem struct {
-	*ecsmanager.SystemEntityCollection
 }
 
 func (t *TestPlayerSystem) Init() {
 	log.Println("TestPlayerSystem Init")
 	e := engine.ECSManager.NewEntity()
-	components.AddMeshRendererComponent(e, &components.MeshRenderer{Mesh: "Cube"})
-	components.AddMaterialComponent(e, &components.Material{Colour: mgl32.Vec3{1, 0, 1}})
-	components.AddPlayerComponent(e, &components.PlayerComponent{})
+	e.AddComponent(&components.MeshRenderer{Mesh: "Cube"})
+	e.AddComponent(&components.Material{Colour: mgl32.Vec3{1, 0, 1}})
+	e.AddComponent(&components.PlayerComponent{})
 }
 
 func (t *TestPlayerSystem) Update(delta float32) {
@@ -29,36 +28,38 @@ func (t *TestPlayerSystem) Update(delta float32) {
 	defer func() {
 		log.Println("Test system: ", time.Since(start))
 	}()
-	for _, entity := range t.Entities() {
-		transform := entity.Transform()
+
+	engine.ECSManager.GetEntitiesWithComponents(components.PlayerComponentTag).Each(func(entity ecs.Entity) {
+		entityTransform, _ := components.GetTransformComponent(entity)
 		if engine.InputManager.Held(glfw.KeyW) {
-			transform.Translate(0, 0, 1*delta)
+			entityTransform.Translate(0, 0, 1*delta)
 		}
 
 		if engine.InputManager.Held(glfw.KeyS) {
-			transform.Translate(0, 0, -1*delta)
+			entityTransform.Translate(0, 0, -1*delta)
 		}
 
 		if engine.InputManager.Held(glfw.KeyD) {
-			transform.Translate(-1*delta, 0, 0)
+			entityTransform.Translate(-1*delta, 0, 0)
 		}
 
 		if engine.InputManager.Held(glfw.KeyA) {
-			transform.Translate(1*delta, 0, 0)
+			entityTransform.Translate(1*delta, 0, 0)
 		}
 
 		if engine.InputManager.Pressed(glfw.KeyQ) {
 			bullet := engine.ECSManager.NewEntity()
-			bullet.Transform().Pos = entity.Transform().Pos
-			components.AddMeshRendererComponent(bullet, &components.MeshRenderer{Mesh: "Cube"})
-			components.AddMaterialComponent(bullet, &components.Material{Colour: mgl32.Vec3{1, 0, 0}})
-			components.AddPhysicsComponent(bullet, &components.PhysicsComponent{Velocity: mgl32.Vec3{0, 0, 1}})
+			bulletTransform, _ := components.GetTransformComponent(bullet)
+			bulletTransform.Pos = entityTransform.Pos
+			bullet.AddComponent(&components.MeshRenderer{Mesh: "Cube"})
+			bullet.AddComponent(&components.Material{Colour: mgl32.Vec3{1, 0, 0}})
+			bullet.AddComponent(&components.PhysicsComponent{Velocity: mgl32.Vec3{0, 0, 1}})
 		}
 
 		if engine.InputManager.Held(glfw.KeyE) {
 			time.Sleep(50 * time.Millisecond)
 		}
-	}
+	})
 }
 
 func (t *TestPlayerSystem) LateUpdate(delta float32) {
@@ -70,7 +71,5 @@ func (t *TestPlayerSystem) Shutdown() {
 }
 
 func NewTestPlayerSystem() *TestPlayerSystem {
-	system := &TestPlayerSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
-	system.SetRequirements(components.PlayerComponentTag)
-	return system
+	return &TestPlayerSystem{}
 }

@@ -1,14 +1,22 @@
-package ecs
+package components
 
-import "github.com/go-gl/mathgl/mgl32"
+import (
+	"GraphicsStuff/engine/ecs"
+
+	"github.com/go-gl/mathgl/mgl32"
+)
 
 type Transform struct {
 	Pos          mgl32.Vec3
 	LocalToWorld mgl32.Mat4
 }
 
-func (t *Transform) Name() string {
+func (t *Transform) String() string {
 	return "Transform"
+}
+
+func (t *Transform) Tag() ecs.ComponentTag {
+	return TransformComponentTag
 }
 
 func (t *Transform) Translate(x, y, z float32) {

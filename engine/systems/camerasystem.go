@@ -2,39 +2,38 @@ package systems
 
 import (
 	"GraphicsStuff/engine"
+	"GraphicsStuff/engine/components"
 	"GraphicsStuff/engine/ecs"
-	"GraphicsStuff/engine/ecs/components"
-	"GraphicsStuff/engine/ecs/ecsmanager"
 )
 
 type CameraSystem struct {
-	*ecsmanager.SystemEntityCollection
 }
 
 func NewCameraSystem() *CameraSystem {
-	system := &CameraSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
-	system.SetRequirements(components.CameraComponentTag)
-	return system
+	return &CameraSystem{}
 }
 
 func (c *CameraSystem) Init() {
 	camera := engine.ECSManager.NewEntity()
-	components.AddCameraComponent(camera, &components.Camera{FOV: 95.0})
+	camera.AddComponent(&components.Camera{FOV: 95.0})
 }
 
 func (c *CameraSystem) Update(delta float32) {
+	cameras := engine.ECSManager.GetEntitiesWithComponents(components.CameraComponentTag)
 	renderables := engine.ECSManager.GetEntitiesWithComponents(components.MeshRendererComponentTag)
 
-	for _, entity := range c.Entities() {
+	cameras.Each(func(entity ecs.Entity) {
 		camera, err := components.GetCameraComponent(entity)
 		if err != nil {
-			continue
+			return
 		}
 
-		renderablesCopy := make([]ecs.Entity, len(renderables))
-		copy(renderablesCopy, renderables)
+		renderablesCopy := make([]ecs.Entity, 0, renderables.Len())
+		for _, renderableList := range renderables {
+			renderablesCopy = append(renderablesCopy, renderableList...)
+		}
 		camera.Renderables = renderablesCopy
-	}
+	})
 }
 
 func (c *CameraSystem) LateUpdate(delta float32) {

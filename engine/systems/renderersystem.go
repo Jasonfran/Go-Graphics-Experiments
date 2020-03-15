@@ -2,9 +2,8 @@ package systems
 
 import (
 	"GraphicsStuff/engine"
-	"GraphicsStuff/engine/ecs/components"
-	"GraphicsStuff/engine/ecs/ecsmanager"
-	"GraphicsStuff/engine/loader"
+	"GraphicsStuff/engine/components"
+	"GraphicsStuff/engine/ecs"
 	"GraphicsStuff/primitives"
 	"fmt"
 	"io/ioutil"
@@ -20,7 +19,6 @@ import (
 )
 
 type RendererSystem struct {
-	*ecsmanager.SystemEntityCollection
 	vao     uint32
 	vbo     uint32
 	program uint32
@@ -81,14 +79,15 @@ func (r *RendererSystem) Update(delta float32) {
 	}()
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-	for _, entity := range r.Entities() {
+
+	engine.ECSManager.GetEntitiesWithComponents(components.CameraComponentTag).Each(func(entity ecs.Entity) {
 		camera, err := components.GetCameraComponent(entity)
 		if err != nil {
-			continue
+			return
 		}
 
 		for _, renderable := range camera.Renderables {
-			transform := renderable.Transform()
+			transform, _ := components.GetTransformComponent(renderable)
 			modelUniform := gl.GetUniformLocation(r.program, gl.Str("model\x00"))
 			gl.UniformMatrix4fv(modelUniform, 1, false, &transform.LocalToWorld[0])
 
@@ -103,7 +102,7 @@ func (r *RendererSystem) Update(delta float32) {
 			gl.BindVertexArray(r.vao)
 			gl.DrawArrays(gl.TRIANGLES, 0, int32(len(r.cube)))
 		}
-	}
+	})
 }
 
 func (r *RendererSystem) LateUpdate(delta float32) {
@@ -114,9 +113,7 @@ func (r *RendererSystem) Shutdown() {
 }
 
 func NewRendererSystem() *RendererSystem {
-	system := &RendererSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
-	system.SetRequirements(components.CameraComponentTag)
-	return system
+	return &RendererSystem{}
 }
 
 func newProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error) {
@@ -186,23 +183,4 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 	}
 
 	return shader, nil
-}
-
-func load2b() []engine.Vertex {
-	model, err := loader.Parse("cmd/ecs/models/2b.obj")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	vertices := []engine.Vertex{}
-	for _, vert := range model.Meshes[0].Vertices {
-		vertices = append(vertices, engine.Vertex{
-			Pos:       mgl32.Vec3{vert.Pos.X, vert.Pos.Y, vert.Pos.Z},
-			Normal:    mgl32.Vec3{vert.Normal.X, vert.Normal.Y, vert.Normal.Z},
-			Color:     mgl32.Vec3{1, 0, 0},
-			TexCoords: mgl32.Vec2{vert.TexCoords.X, vert.TexCoords.Y},
-		})
-	}
-
-	return vertices
 }

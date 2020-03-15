@@ -1,8 +1,9 @@
 package playersystems
 
 import (
-	"GraphicsStuff/engine/ecs/components"
-	"GraphicsStuff/engine/ecs/ecsmanager"
+	"GraphicsStuff/engine"
+	"GraphicsStuff/engine/components"
+	"GraphicsStuff/engine/ecs"
 	"log"
 	"time"
 
@@ -10,13 +11,10 @@ import (
 )
 
 type PhysicsSystem struct {
-	*ecsmanager.SystemEntityCollection
 }
 
 func NewPhysicsSystem() *PhysicsSystem {
-	system := &PhysicsSystem{SystemEntityCollection: ecsmanager.NewSystemEntityCollection()}
-	system.SetRequirements(components.PhysicsComponentTag)
-	return system
+	return &PhysicsSystem{}
 }
 
 func (s *PhysicsSystem) Init() {
@@ -32,16 +30,17 @@ func (s *PhysicsSystem) LateUpdate(delta float32) {
 	defer func() {
 		log.Println("Physics system: ", time.Since(start))
 	}()
-	for _, entity := range s.Entities() {
-		transform := entity.Transform()
+
+	engine.ECSManager.GetEntitiesWithComponents(components.PhysicsComponentTag).Each(func(entity ecs.Entity) {
+		transform, _ := components.GetTransformComponent(entity)
 		physics, err := components.GetPhysicsComponent(entity)
 		if err != nil {
-			continue
+			return
 		}
 
 		transform.Translate(physics.Velocity.X(), physics.Velocity.Y(), physics.Velocity.Z())
 		physics.Velocity = physics.Velocity.Sub(mgl32.Vec3{1 * physics.Velocity.X() * delta, 1 * physics.Velocity.Y() * delta, 1 * physics.Velocity.Z() * delta})
-	}
+	})
 }
 
 func (s *PhysicsSystem) Shutdown() {
