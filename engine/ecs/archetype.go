@@ -1,6 +1,8 @@
 package ecs
 
 import (
+	"GraphicsStuff/engine"
+
 	"github.com/willf/bitset"
 )
 
@@ -10,28 +12,13 @@ var archetypeCache = map[archetypeHash]Archetype{
 	hashTags(): {bs: bitset.New(0)},
 }
 
-type Query struct {
-	bs *bitset.BitSet
-}
-
-func NewQuery(tags ...ComponentTag) Query {
-	bs := bitset.New(uint(len(tags)))
-	for _, tag := range tags {
-		bs.Set(uint(tag))
-	}
-
-	return Query{
-		bs: bs,
-	}
-}
-
 // Archetype contains a description of components and entity contains.
 // This shouldn't be created manually if you wish to keep map key equality
 type Archetype struct {
 	bs *bitset.BitSet
 }
 
-func NewArchetype(tags ...ComponentTag) Archetype {
+func NewArchetype(tags ...engine.ComponentTag) Archetype {
 	hash := hashTags(tags...)
 	archetype, ok := archetypeCache[hash]
 	if ok {
@@ -51,15 +38,15 @@ func NewArchetype(tags ...ComponentTag) Archetype {
 	return archetype
 }
 
-func (a Archetype) Satisfies(query Query) bool {
-	return a.bs.IsSuperSet(query.bs)
+func (a Archetype) Satisfies(query engine.IQuery) bool {
+	return a.bs.IsSuperSet(query.InclusionSet()) && a.bs.IntersectionCardinality(query.ExclusionSet()) == 0
 }
 
-func (a Archetype) AddType(tag ComponentTag) Archetype {
+func (a Archetype) AddType(tag engine.ComponentTag) Archetype {
 	return NewArchetype(append(a.GetTypes(), tag)...)
 }
 
-func (a Archetype) RemoveType(tag ComponentTag) Archetype {
+func (a Archetype) RemoveType(tag engine.ComponentTag) Archetype {
 	tags := a.GetTypes()
 	for i, componentTag := range tags {
 		if componentTag == tag {
@@ -71,18 +58,18 @@ func (a Archetype) RemoveType(tag ComponentTag) Archetype {
 	return a
 }
 
-func (a Archetype) GetTypes() []ComponentTag {
-	tags := make([]ComponentTag, 0, a.bs.Len())
+func (a Archetype) GetTypes() []engine.ComponentTag {
+	tags := make([]engine.ComponentTag, 0, a.bs.Len())
 	for i := uint(0); i < a.bs.Len(); i++ {
 		if a.bs.Test(i) {
-			tags = append(tags, ComponentTag(i))
+			tags = append(tags, engine.ComponentTag(i))
 		}
 	}
 
 	return tags
 }
 
-func hashTags(tags ...ComponentTag) archetypeHash {
+func hashTags(tags ...engine.ComponentTag) archetypeHash {
 	hash := uint64(0)
 	for _, tag := range tags {
 		hash += uint64(tag)

@@ -1,52 +1,34 @@
 package ecs
 
 import (
+	"GraphicsStuff/engine"
 	"fmt"
 )
 
 type componentLookup struct {
-	EntityID     EntityID
-	ComponentTag ComponentTag
+	EntityID     engine.EntityID
+	ComponentTag engine.ComponentTag
 }
 
 type EntityComponentCollection struct {
-	entityArchetypes         map[EntityID]Archetype
-	archetypeEntities        map[Archetype][]Entity
-	archetypeEntitiesIndexes map[EntityID]int
+	entityArchetypes         map[engine.EntityID]Archetype
+	archetypeEntities        map[Archetype][]engine.IEntity
+	archetypeEntitiesIndexes map[engine.EntityID]int
 
-	entityComponents map[componentLookup]Component
-}
-
-type EntityIterable [][]Entity
-
-func (i EntityIterable) Each(f func(entity Entity)) {
-	for _, entityList := range i {
-		for _, entity := range entityList {
-			f(entity)
-		}
-	}
-}
-
-func (i EntityIterable) Len() int {
-	length := 0
-	for _, entityList := range i {
-		length += len(entityList)
-	}
-
-	return length
+	entityComponents map[componentLookup]engine.IComponent
 }
 
 func NewEntityComponentCollection() *EntityComponentCollection {
 	return &EntityComponentCollection{
-		entityArchetypes:         map[EntityID]Archetype{},
-		archetypeEntities:        map[Archetype][]Entity{},
-		archetypeEntitiesIndexes: map[EntityID]int{},
+		entityArchetypes:         map[engine.EntityID]Archetype{},
+		archetypeEntities:        map[Archetype][]engine.IEntity{},
+		archetypeEntitiesIndexes: map[engine.EntityID]int{},
 
-		entityComponents: map[componentLookup]Component{},
+		entityComponents: map[componentLookup]engine.IComponent{},
 	}
 }
 
-func (c *EntityComponentCollection) Add(entity Entity, component Component) {
+func (c *EntityComponentCollection) Add(entity engine.IEntity, component engine.IComponent) {
 	// add component
 	cLookup := componentLookup{
 		EntityID:     entity.ID(),
@@ -77,7 +59,7 @@ func (c *EntityComponentCollection) Add(entity Entity, component Component) {
 	c.archetypeEntitiesIndexes[entity.ID()] = index
 }
 
-func (c *EntityComponentCollection) removeFromArchtype(archetype Archetype, entity Entity) {
+func (c *EntityComponentCollection) removeFromArchtype(archetype Archetype, entity engine.IEntity) {
 	archetypeEntities := c.archetypeEntities[archetype]
 	lastEntity := archetypeEntities[len(archetypeEntities)-1]
 	index := c.archetypeEntitiesIndexes[entity.ID()]
@@ -88,7 +70,7 @@ func (c *EntityComponentCollection) removeFromArchtype(archetype Archetype, enti
 	}
 }
 
-func (c *EntityComponentCollection) Remove(entity Entity, tag ComponentTag) {
+func (c *EntityComponentCollection) Remove(entity engine.IEntity, tag engine.ComponentTag) {
 	cLookup := componentLookup{
 		EntityID:     entity.ID(),
 		ComponentTag: tag,
@@ -113,7 +95,7 @@ func (c *EntityComponentCollection) Remove(entity Entity, tag ComponentTag) {
 	}
 }
 
-func (c *EntityComponentCollection) RemoveEntity(entity Entity) {
+func (c *EntityComponentCollection) RemoveEntity(entity engine.IEntity) {
 	archetype, ok := c.entityArchetypes[entity.ID()]
 	if !ok {
 		return
@@ -134,7 +116,7 @@ func (c *EntityComponentCollection) RemoveEntity(entity Entity) {
 	delete(c.entityArchetypes, entity.ID())
 }
 
-func (c *EntityComponentCollection) Get(entity Entity, tag ComponentTag) (Component, error) {
+func (c *EntityComponentCollection) Get(entity engine.IEntity, tag engine.ComponentTag) (engine.IComponent, error) {
 	cLookup := componentLookup{
 		EntityID:     entity.ID(),
 		ComponentTag: tag,
@@ -148,9 +130,18 @@ func (c *EntityComponentCollection) Get(entity Entity, tag ComponentTag) (Compon
 	return comp, nil
 }
 
-func (c *EntityComponentCollection) GetEntitiesWithComponents(tags ...ComponentTag) EntityIterable {
-	foundEntities := make([][]Entity, 0, len(tags))
-	query := NewQuery(tags...)
+func (c *EntityComponentCollection) HasComponent(entity engine.IEntity, tag engine.ComponentTag) bool {
+	cLookup := componentLookup{
+		EntityID:     entity.ID(),
+		ComponentTag: tag,
+	}
+
+	_, ok := c.entityComponents[cLookup]
+	return ok
+}
+
+func (c *EntityComponentCollection) GetEntitiesFromQuery(query engine.IQuery) engine.EntityIterable {
+	foundEntities := make([][]engine.IEntity, 0, query.InclusionSet().Count())
 	for archetype, entities := range c.archetypeEntities {
 		if archetype.Satisfies(query) {
 			foundEntities = append(foundEntities, entities)

@@ -1,7 +1,7 @@
 package components
 
 import (
-	"GraphicsStuff/engine/ecs"
+	"GraphicsStuff/engine"
 
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -14,6 +14,6 @@ func (p *PhysicsComponent) String() string {
 	return "PhysicsComponent"
 }
 
-func (p *PhysicsComponent) Tag() ecs.ComponentTag {
+func (p *PhysicsComponent) Tag() engine.ComponentTag {
 	return PhysicsComponentTag
 }

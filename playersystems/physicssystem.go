@@ -3,9 +3,6 @@ package playersystems
 import (
 	"GraphicsStuff/engine"
 	"GraphicsStuff/engine/components"
-	"GraphicsStuff/engine/ecs"
-	"log"
-	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -17,21 +14,21 @@ func NewPhysicsSystem() *PhysicsSystem {
 	return &PhysicsSystem{}
 }
 
-func (s *PhysicsSystem) Init() {
+func (s *PhysicsSystem) Init(context engine.EngineContext) {
 
 }
 
-func (s *PhysicsSystem) Update(delta float32) {
+func (s *PhysicsSystem) Update(context engine.EngineContext, delta float32) {
 
 }
 
-func (s *PhysicsSystem) LateUpdate(delta float32) {
-	start := time.Now()
-	defer func() {
-		log.Println("Physics system: ", time.Since(start))
-	}()
+func (s *PhysicsSystem) LateUpdate(context engine.EngineContext, delta float32) {
+	//start := time.Now()
+	//defer func() {
+	//	log.Println("Physics system: ", time.Since(start))
+	//}()
 
-	engine.ECSManager.GetEntitiesWithComponents(components.PhysicsComponentTag).Each(func(entity ecs.Entity) {
+	context.EntityManager.GetEntitiesFromQuery(components.Includes(components.PhysicsComponentTag)).Each(func(entity engine.IEntity) {
 		transform, _ := components.GetTransformComponent(entity)
 		physics, err := components.GetPhysicsComponent(entity)
 		if err != nil {
@@ -43,6 +40,6 @@ func (s *PhysicsSystem) LateUpdate(delta float32) {
 	})
 }
 
-func (s *PhysicsSystem) Shutdown() {
+func (s *PhysicsSystem) Shutdown(context engine.EngineContext) {
 
 }

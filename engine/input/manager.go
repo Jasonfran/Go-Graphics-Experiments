@@ -1,22 +1,22 @@
-package engine
+package input
 
 import "github.com/go-gl/glfw/v3.3/glfw"
 
 type keyState [2]bool
 
-type Manager struct {
+type InputManager struct {
 	mouseX    int
 	mouseY    int
 	keyStates map[glfw.Key]keyState
 }
 
-func NewManager() *Manager {
-	return &Manager{
+func NewStandardInputManager() *InputManager {
+	return &InputManager{
 		keyStates: map[glfw.Key]keyState{},
 	}
 }
 
-func (m *Manager) KeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+func (m *InputManager) KeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	state, ok := m.keyStates[key]
 	if !ok {
 		state = keyState{false, false}
@@ -34,17 +34,17 @@ func (m *Manager) KeyCallback(w *glfw.Window, key glfw.Key, scancode int, action
 	m.keyStates[key] = state
 }
 
-func (m *Manager) Update() {
+func (m *InputManager) Update() {
 	for key, state := range m.keyStates {
 		state[0] = false
 		m.keyStates[key] = state
 	}
 }
 
-func (m *Manager) Pressed(key glfw.Key) bool {
+func (m *InputManager) Pressed(key glfw.Key) bool {
 	return m.keyStates[key][0]
 }
 
-func (m *Manager) Held(key glfw.Key) bool {
+func (m *InputManager) Held(key glfw.Key) bool {
 	return m.keyStates[key][1]
 }

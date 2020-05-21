@@ -1,22 +1,30 @@
 package ecs
 
-type entity struct {
-	Id      EntityID
-	manager Manager
+import (
+	"GraphicsStuff/engine"
+)
+
+type Entity struct {
+	Id      engine.EntityID
+	manager engine.IEntityManager
 }
 
-func (e *entity) ID() EntityID {
+func (e *Entity) ID() engine.EntityID {
 	return e.Id
 }
 
-func (e *entity) AddComponent(component Component) {
+func (e *Entity) AddComponent(component engine.IComponent) {
 	e.manager.AddComponent(e, component)
 }
 
-func (e *entity) GetComponent(tag ComponentTag) (Component, error) {
+func (e *Entity) GetComponent(tag engine.ComponentTag) (engine.IComponent, error) {
 	return e.manager.GetComponent(e, tag)
 }
 
-func (e *entity) Destroy() {
+func (e *Entity) HasComponent(tag engine.ComponentTag) bool {
+	return e.manager.HasComponent(e, tag)
+}
+
+func (e *Entity) Destroy() {
 	e.manager.DestroyEntity(e)
 }

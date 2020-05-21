@@ -1,18 +1,20 @@
 package ecs
 
 import (
+	"GraphicsStuff/engine"
+	"GraphicsStuff/engine/components"
 	"testing"
 )
 
 const (
-	TestTag1 ComponentTag = iota
+	TestTag1 engine.ComponentTag = iota
 	TestTag2
 	TestTag3
 	TestTag4
 )
 
 func TestArchetype_Satisfies(t *testing.T) {
-	query := NewQuery(TestTag1, TestTag2)
+	query := components.Includes(TestTag1, TestTag2)
 	archetype := NewArchetype(TestTag1, TestTag2, TestTag3, TestTag4)
 	if !archetype.Satisfies(query) {
 		t.Fail()
@@ -33,7 +35,7 @@ func TestArchetype_Equality(t *testing.T) {
 }
 
 func BenchmarkArchetype_Satisfies(b *testing.B) {
-	query := NewQuery(TestTag1, TestTag2)
+	query := components.Includes(TestTag1, TestTag2)
 	archetype := NewArchetype(TestTag1, TestTag2, TestTag3, TestTag4)
 	for i := 0; i < b.N; i++ {
 		archetype.Satisfies(query)

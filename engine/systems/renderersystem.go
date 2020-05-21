@@ -3,84 +3,82 @@ package systems
 import (
 	"GraphicsStuff/engine"
 	"GraphicsStuff/engine/components"
-	"GraphicsStuff/engine/ecs"
-	"GraphicsStuff/primitives"
-	"fmt"
-	"io/ioutil"
+	"GraphicsStuff/engine/data"
+	"GraphicsStuff/engine/events"
+	"GraphicsStuff/engine/shader"
 	"log"
-	"strings"
-	"time"
-	"unsafe"
+
+	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 type RendererSystem struct {
-	vao     uint32
-	vbo     uint32
-	program uint32
-	cube    []engine.Vertex
+	//vao         uint32
+	//vbo         uint32
+	basicShader *shader.Shader
+	cube        []engine.Vertex
 }
 
-func (r *RendererSystem) Init() {
+func (r *RendererSystem) Init(context engine.EngineContext) {
 	log.Println("RendererSystem init")
 	glfw.SwapInterval(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
 
-	program, err := newProgram("shaders/vert.glsl", "shaders/frag.glsl")
+	basicShader, err := shader.New("shaders/vert.glsl", "shaders/frag.glsl")
 	if err != nil {
 		log.Fatal(err)
 	}
-	r.program = program
-	gl.GenVertexArrays(1, &r.vao)
-	gl.BindVertexArray(r.vao)
-
-	gl.GenBuffers(1, &r.vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
-
-	r.cube = primitives.CubeVertex()
-	gl.BufferData(gl.ARRAY_BUFFER, int(unsafe.Sizeof(engine.Vertex{}))*len(r.cube), gl.Ptr(r.cube), gl.STATIC_DRAW)
-	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, int32(unsafe.Sizeof(engine.Vertex{})), gl.PtrOffset(0))
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-	gl.BindVertexArray(0)
-	gl.UseProgram(program)
+	r.basicShader = basicShader
+	//gl.GenVertexArrays(1, &r.vao)
+	//gl.BindVertexArray(r.vao)
+	//
+	//gl.GenBuffers(1, &r.vbo)
+	//gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
+	//
+	//r.cube = primitives.CubeVertex()
+	//gl.BufferData(gl.ARRAY_BUFFER, int(unsafe.Sizeof(engine.Vertex{}))*len(r.cube), gl.Ptr(r.cube), gl.STATIC_DRAW)
+	//gl.EnableVertexAttribArray(0)
+	//gl.VertexAttribPointer(0, 3, gl.FLOAT, false, int32(unsafe.Sizeof(engine.Vertex{})), gl.PtrOffset(0))
+	//
+	//gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+	//gl.BindVertexArray(0)
+	basicShader.Use()
 
 	projection := mgl32.Perspective(mgl32.DegToRad(75.0), float32(800)/600, 0.1, 1000.0)
-	projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
-	gl.UniformMatrix4fv(projectionUniform, 1, false, &projection[0])
+	basicShader.SetMat4("projection", projection)
 
 	view := mgl32.LookAtV(mgl32.Vec3{0, 1, 0}, mgl32.Vec3{0, 1, 1}, mgl32.Vec3{0, 1, 0})
-	viewUniform := gl.GetUniformLocation(program, gl.Str("view\x00"))
-	gl.UniformMatrix4fv(viewUniform, 1, false, &view[0])
+	basicShader.SetMat4("view", view)
 
 	model := mgl32.Ident4() //mgl32.Translate3D(3, 3, 3)
-	modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
-	gl.UniformMatrix4fv(modelUniform, 1, false, &model[0])
+	basicShader.SetMat4("model", model)
 
-	engine.EventDispatcher.Subscribe(engine.TestEvent, func(eventType engine.EventType, i interface{}) {
-		log.Println(i)
-	})
+	context.EventDispatcher.Subscribe(events.WindowResizedEvent, func(eventType engine.EventType, d interface{}) {
+		eventData, ok := d.(events.WindowResizedEventData)
+		if !ok {
+			return
+		}
 
-	time.AfterFunc(5*time.Second, func() {
-		engine.EventDispatcher.Trigger(engine.TestEvent, "This works!")
+		gl.Viewport(0, 0, int32(eventData.Width), int32(eventData.Width))
+		projection := mgl32.Perspective(mgl32.DegToRad(90.0), float32(eventData.Width)/float32(eventData.Height), 0.1, 1000.0)
+		basicShader.SetMat4("projection", projection)
 	})
 }
 
-func (r *RendererSystem) Update(delta float32) {
-	start := time.Now()
-	defer func() {
-		log.Println("Render: ", time.Since(start))
-	}()
+func (r *RendererSystem) Update(context engine.EngineContext, delta float32) {
+	//defer func(t time.Time) {
+	//	log.Println(time.Since(t))
+	//}(time.Now())
+
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	engine.ECSManager.GetEntitiesWithComponents(components.CameraComponentTag).Each(func(entity ecs.Entity) {
+	drawCalls := 0
+	context.EntityManager.GetEntitiesFromQuery(components.Includes(components.CameraComponentTag)).Each(func(entity engine.IEntity) {
 		camera, err := components.GetCameraComponent(entity)
 		if err != nil {
 			return
@@ -88,99 +86,38 @@ func (r *RendererSystem) Update(delta float32) {
 
 		for _, renderable := range camera.Renderables {
 			transform, _ := components.GetTransformComponent(renderable)
-			modelUniform := gl.GetUniformLocation(r.program, gl.Str("model\x00"))
-			gl.UniformMatrix4fv(modelUniform, 1, false, &transform.LocalToWorld[0])
-
-			color := mgl32.Vec3{1, 1, 1}
-			material, err := components.GetMaterialComponent(renderable)
+			r.basicShader.SetMat4("model", transform.LocalToWorld)
+			//log.Println(transform.LocalToWorld)
+			meshComponent, err := components.GetMeshComponent(renderable)
 			if err == nil {
-				color = material.Colour
+				if !meshComponent.Mesh.LoadedIntoGL {
+					meshComponent.Mesh.LoadIntoGL()
+				}
+				for _, primitive := range meshComponent.Mesh.Primitives {
+					color := mgl32.Vec3{1, 1, 1}
+					material := &data.Material{Colour: color}
+					if primitive.Material != nil {
+						material = primitive.Material
+					}
+					r.basicShader.SetVec3("color", material.Colour)
+					gl.BindVertexArray(primitive.VAO)
+					gl.DrawElements(primitive.Mode, int32(primitive.Indices.Count), primitive.Indices.ComponentType, nil)
+					drawCalls += 1
+					gl.BindVertexArray(0)
+				}
 			}
-
-			colorUniform := gl.GetUniformLocation(r.program, gl.Str("color\x00"))
-			gl.Uniform3f(colorUniform, color.X(), color.Y(), color.Z())
-			gl.BindVertexArray(r.vao)
-			gl.DrawArrays(gl.TRIANGLES, 0, int32(len(r.cube)))
 		}
 	})
+	//log.Println("Draw calls:", drawCalls)
 }
 
-func (r *RendererSystem) LateUpdate(delta float32) {
+func (r *RendererSystem) LateUpdate(context engine.EngineContext, delta float32) {
 }
 
-func (r *RendererSystem) Shutdown() {
+func (r *RendererSystem) Shutdown(context engine.EngineContext) {
 	log.Println("RendererSystem shutdown")
 }
 
 func NewRendererSystem() *RendererSystem {
 	return &RendererSystem{}
-}
-
-func newProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error) {
-
-	vertShader, err := ioutil.ReadFile(vertexShaderSource)
-	if err != nil {
-		return 0, err
-	}
-
-	fragShader, err := ioutil.ReadFile(fragmentShaderSource)
-	if err != nil {
-		return 0, err
-	}
-
-	vertexShader, err := compileShader(string(vertShader), gl.VERTEX_SHADER)
-	if err != nil {
-		return 0, err
-	}
-
-	fragmentShader, err := compileShader(string(fragShader), gl.FRAGMENT_SHADER)
-	if err != nil {
-		return 0, err
-	}
-
-	program := gl.CreateProgram()
-
-	gl.AttachShader(program, vertexShader)
-	gl.AttachShader(program, fragmentShader)
-	gl.LinkProgram(program)
-
-	var status int32
-	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
-	if status == gl.FALSE {
-		var logLength int32
-		gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLength)
-
-		log := strings.Repeat("\x00", int(logLength+1))
-		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(log))
-
-		return 0, fmt.Errorf("failed to link program: %v", log)
-	}
-
-	gl.DeleteShader(vertexShader)
-	gl.DeleteShader(fragmentShader)
-
-	return program, nil
-}
-
-func compileShader(source string, shaderType uint32) (uint32, error) {
-	shader := gl.CreateShader(shaderType)
-	length := int32(len(source))
-	csources, free := gl.Strs(source)
-	gl.ShaderSource(shader, 1, csources, &length)
-	free()
-	gl.CompileShader(shader)
-
-	var status int32
-	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
-	if status == gl.FALSE {
-		var logLength int32
-		gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLength)
-
-		log := strings.Repeat("\x00", int(logLength+1))
-		gl.GetShaderInfoLog(shader, logLength, nil, gl.Str(log))
-
-		return 0, fmt.Errorf("failed to compile %v: %v", source, log)
-	}
-
-	return shader, nil
 }

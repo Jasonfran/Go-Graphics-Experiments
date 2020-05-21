@@ -1,12 +1,17 @@
 package components
 
-import "GraphicsStuff/engine/ecs"
+import (
+	"GraphicsStuff/engine"
+)
 
 const (
-	TransformComponentTag ecs.ComponentTag = iota
+	TransformComponentTag engine.ComponentTag = iota + 1
 	CameraComponentTag
-	MeshRendererComponentTag
+	ModelComponentTag
 	MaterialComponentTag
 	PlayerComponentTag
 	PhysicsComponentTag
+	MeshComponentTag
+	ParentComponentTag
+	ChildrenComponentTag
 )
