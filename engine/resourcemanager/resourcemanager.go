@@ -6,8 +6,6 @@ import (
 	"GraphicsStuff/engine/data"
 	"log"
 	"os"
-
-	"github.com/go-gl/mathgl/mgl32"
 )
 
 type ResourceManager struct {
@@ -45,7 +43,7 @@ func (rm *ResourceManager) ModelToEntity(context engine.EngineContext, model *da
 func entityFromNode(context engine.EngineContext, thisNode *data.Node, parentEntity engine.IEntity) engine.IEntity {
 	thisEntity := context.EntityManager.NewEntity()
 	thisTransform, _ := components.GetTransformComponent(thisEntity)
-	if thisNode.Matrix != mgl32.Ident4() {
+	if thisNode.HasMatrix {
 		thisTransform.MatrixToTransform(thisNode.Matrix)
 	} else {
 		thisTransform.SetPosVec3(thisNode.Translation)

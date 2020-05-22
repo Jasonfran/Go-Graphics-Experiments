@@ -108,7 +108,7 @@ func (r *RendererSystem) Update(context engine.EngineContext, delta float32) {
 			}
 		}
 	})
-	//log.Println("Draw calls:", drawCalls)
+	log.Println("Draw calls:", drawCalls)
 }
 
 func (r *RendererSystem) LateUpdate(context engine.EngineContext, delta float32) {

@@ -63,19 +63,26 @@ func (t *Transform) GetScale() mgl32.Vec3 {
 }
 
 func (t *Transform) MatrixToTransform(m mgl32.Mat4) {
-	t.SetPos(m[3], m[7], m[11])
-	sX := mgl32.Vec3{m[0], m[4], m[8]}.Len()
-	sY := mgl32.Vec3{m[1], m[5], m[9]}.Len()
-	sZ := mgl32.Vec3{m[2], m[6], m[10]}.Len()
+	t.SetPos(m[12], m[13], m[14])
+	sX := mgl32.Vec3{m[0], m[1], m[2]}.Len()
+	sY := mgl32.Vec3{m[4], m[5], m[6]}.Len()
+	sZ := mgl32.Vec3{m[8], m[9], m[10]}.Len()
 	scale := mgl32.Vec3{sX, sY, sZ}
 	t.SetScaleVec3(scale)
-	rotation := mgl32.Mat4{
-		m[0] / sX, m[1] / sY, m[2] / sZ, 0,
-		m[4] / sX, m[5] / sY, m[6] / sZ, 0,
-		m[8] / sX, m[9] / sY, m[10] / sZ, 0,
+
+	invSX := 1 / sX
+	invSY := 1 / sY
+	invSZ := 1 / sZ
+
+	rotationMatrix := mgl32.Mat4{
+		m[0] * invSX, m[1] * invSX, m[2] * invSX, 0,
+		m[4] * invSY, m[5] * invSY, m[6] * invSY, 0,
+		m[8] * invSZ, m[9] * invSZ, m[10] * invSZ, 0,
 		0, 0, 0, 1,
 	}
-	t.SetRot(mgl32.Mat4ToQuat(rotation))
+
+	rotation := mgl32.Mat4ToQuat(rotationMatrix)
+	t.SetRot(rotation)
 }
 
 func IdentityTransform() *Transform {

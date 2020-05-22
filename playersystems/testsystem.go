@@ -75,10 +75,9 @@ func (t *TestPlayerSystem) Update(context engine.EngineContext, delta float32) {
 		}
 
 		if context.InputManager.Pressed(glfw.KeyQ) {
-			bullet := context.EntityManager.NewEntity()
+			bullet := context.ResourceManager.ModelToEntity(context, t.bulletModel)
 			bulletTransform, _ := components.GetTransformComponent(bullet)
 			bulletTransform.SetPosVec3(entityTransform.GetPos())
-			bullet.AddComponent(&components.ModelComponent{Model: t.bulletModel})
 			bullet.AddComponent(&components.PhysicsComponent{Velocity: mgl32.Vec3{0, 0, 1}})
 		}
 

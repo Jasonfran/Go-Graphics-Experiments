@@ -78,7 +78,7 @@ type Node struct {
 	Rotation    mgl32.Quat
 	Scale       mgl32.Vec3
 	Matrix      mgl32.Mat4
-	WorldMatrix mgl32.Mat4
+	HasMatrix   bool
 }
 
 func (n *Node) GatherNodes() []*Node {
@@ -159,30 +159,35 @@ func LoadGLTF(path string) (*Model, error) {
 
 func loadNode(doc *gltf.Document, node *gltf.Node, buffers []*Buffer) *Node {
 	matrix := node.MatrixOrDefault()
+	translation := node.TranslationOrDefault()
+	rotation := node.RotationOrDefault()
+	scale := node.ScaleOrDefault()
 	glMatrix := mgl32.Mat4{
 		float32(matrix[0]), float32(matrix[1]), float32(matrix[2]), float32(matrix[3]),
 		float32(matrix[4]), float32(matrix[5]), float32(matrix[6]), float32(matrix[7]),
 		float32(matrix[8]), float32(matrix[9]), float32(matrix[10]), float32(matrix[11]),
 		float32(matrix[12]), float32(matrix[13]), float32(matrix[14]), float32(matrix[15])}
+
 	loadedNode := &Node{
 		Name:        node.Name,
-		Translation: mgl32.Vec3{float32(node.Translation[0]), float32(node.Translation[1]), float32(node.Translation[2])},
+		Translation: mgl32.Vec3{float32(translation[0]), float32(translation[1]), float32(translation[2])},
 		Rotation: mgl32.Quat{
-			W: float32(node.Rotation[3]),
+			W: float32(rotation[3]),
 			V: mgl32.Vec3{
-				float32(node.Rotation[0]),
-				float32(node.Rotation[1]),
-				float32(node.Rotation[2]),
+				float32(rotation[0]),
+				float32(rotation[1]),
+				float32(rotation[2]),
 			},
 		},
-		Scale:  mgl32.Vec3{float32(node.Scale[0]), float32(node.Scale[1]), float32(node.Scale[2])},
-		Matrix: glMatrix,
+		Scale:     mgl32.Vec3{float32(scale[0]), float32(scale[1]), float32(scale[2])},
+		HasMatrix: matrix != gltf.DefaultMatrix,
+		Matrix:    glMatrix,
 	}
 
-	translationMatrix := mgl32.Translate3D(loadedNode.Translation.X(), loadedNode.Translation.Y(), loadedNode.Translation.Z())
-	rotationMatrix := loadedNode.Rotation.Mat4()
-	scaleMatrix := mgl32.Scale3D(loadedNode.Scale.X(), loadedNode.Scale.Y(), loadedNode.Scale.Z())
-	loadedNode.Matrix = loadedNode.Matrix.Mul4(translationMatrix).Mul4(rotationMatrix).Mul4(scaleMatrix)
+	//translationMatrix := mgl32.Translate3D(loadedNode.Translation.X(), loadedNode.Translation.Y(), loadedNode.Translation.Z())
+	//rotationMatrix := loadedNode.Rotation.Mat4()
+	//scaleMatrix := mgl32.Scale3D(loadedNode.Scale.X(), loadedNode.Scale.Y(), loadedNode.Scale.Z())
+	////loadedNode.Matrix = loadedNode.Matrix.Mul4(translationMatrix).Mul4(rotationMatrix).Mul4(scaleMatrix)
 
 	if node.Mesh != nil {
 		loadedNode.Mesh = loadMesh(doc, doc.Meshes[*node.Mesh], buffers)
@@ -273,13 +278,6 @@ func loadAccessor(doc *gltf.Document, accessor *gltf.Accessor, buffers []*Buffer
 		Count:         count,
 		DataType:      dataType,
 		BufferTarget:  uint32(bufferView.Target),
-	}
-}
-
-func transformNode(parentTransform mgl32.Mat4, node *Node) {
-	node.WorldMatrix = parentTransform.Mul4(node.Matrix)
-	for _, child := range node.Children {
-		transformNode(node.WorldMatrix, child)
 	}
 }
 
